@@ -12,4 +12,4 @@ For example Alphabets, M and E or K and the number two were the places we had th
 The whole process of building the circuits, implementation and testing took over a period of three months.
 Within the first 15-20 seconds of the running time, the hand needs to be in a relaxed position so we have access to our relative ) degree. In the next step as the angle changes system detect the angle and match it with the alphabet function with the most compatibility and the smallest threshhold.
 
-
+<img src="https://user-images.githubusercontent.com/90856064/186990051-1a1261a3-8556-41ce-9bc0-dbaff776619c.jpg" style="height :350px; width =350px;">
