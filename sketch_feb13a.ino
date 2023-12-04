@@ -1,222 +1,195 @@
-const int FPIN0 = A0;
-const int FPIN1 = A1;
-const int FPIN2 = A2;
-const int FPIN3 = A3;
-const int FPIN4 = A4;
+// Constants for flex sensor pins
+const int NUM_FLEX_SENSORS = 5;
+const int FLEX_PINS[NUM_FLEX_SENSORS] = {A0, A1, A2, A3, A4};
 
-// data
-const int S = 0;
-const int O = 1;
-const int F = 2;
-const int T = 3;
-const int W = 4;
-const int A = 5;
-const int R = 6;
-const int E = 7;
-const int SPACE = 8;
-const int N = 9;
-const int G = 10;
-int prev = -1;
+// Constants for analog input values
+const int ANALOG_MIN = 0;
+const int ANALOG_MAX = 1023;
 
-// make the minimum to 999999999 (a value that can never be reached by the flexsensor) max to 0 and create a difference for all the sensor values
-double fmin0 = 999999999;
-double fmax0 = 0;
+// Constants for mapped values
+const int MAPPED_MIN = 0;
+const int MAPPED_MAX = 90;
 
-double fmin1 = 999999999;
-double fmax1 = 0;
+// Data representation
+const int CHAR_S = 0;
+const int CHAR_O = 1;
+const int CHAR_F = 2;
+const int CHAR_T = 3;
+const int CHAR_W = 4;
+const int CHAR_A = 5;
+const int CHAR_R = 6;
+const int CHAR_E = 7;
+const int CHAR_SPACE = 8;
+const int CHAR_N = 9;
+const int CHAR_G = 10;
 
-double fmin2 = 999999999;
-double fmax2 = 0;
+class FlexSensor {
+public:
+  FlexSensor(int pin) : pin(pin), minValue(ANALOG_MAX), maxValue(ANALOG_MIN) {}
 
-double fmin3 = 999999999;
-double fmax3 = 0;
-
-double fmin4 = 999999999;
-double fmax4 = 0;
-
-void setup() {
-  
-  char temp = '\0';
-
-  // serial begin and if wait for it to completly load before completed 
-  Serial.begin(9600);
-  while(!Serial){
-    ;
+  void calibrate() {
+    for (int i = 0; i < 5; i++) {
+      double value = analogRead(pin);
+      updateMinMax(value);
+    }
   }
 
-  while(millis() < 15000){
+  double getMappedValue() const {
+    double value = analogRead(pin);
+    return map(value, maxValue, minValue, MAPPED_MIN, MAPPED_MAX);
+  }
 
-    // the sensor read
-    double fr0 = analogRead(FPIN0);
-    double fr1 = analogRead(FPIN1);
-    double fr2 = analogRead(FPIN2);
-    double fr3 = analogRead(FPIN3);
-    double fr4 = analogRead(FPIN4);
+private:
+  int pin;
+  int minValue;
+  int maxValue;
 
-    // get min and max for all
-    if(fr0 < fmin0){
-      fmin0 = fr0;
+  void updateMinMax(double value) {
+    if (value < minValue) {
+      minValue = value;
     }
-    if(fr0 > fmax0){
-      fmax0 = fr0;
+    if (value > maxValue) {
+      maxValue = value;
     }
-    
-    if(fr1 < fmin1){
-      fmin1 = fr1;
-    }
-    if(fr1 > fmax1){
-      fmax1 = fr1;
-    }
-    
-    if(fr2 < fmin2){
-      fmin2 = fr2;
-    }
-    if(fr2 > fmax2){
-      fmax2 = fr2;
-    }
-    
-    if(fr3 < fmin3){
-      fmin3 = fr3;
-    }
-    if(fr3 > fmax3){
-      fmax3 = fr3;
-    }
-    
-    if(fr4 < fmin4){
-      fmin4 = fr4;
-    }
-    if(fr4 > fmax4){
-      fmax4 = fr4;
-    }
-    
+  }
+};
+
+// Create an array of FlexSensor objects
+FlexSensor flexSensors[NUM_FLEX_SENSORS] = {
+    FlexSensor(FLEX_PINS[0]),
+    FlexSensor(FLEX_PINS[1]),
+    FlexSensor(FLEX_PINS[2]),
+    FlexSensor(FLEX_PINS[3]),
+    FlexSensor(FLEX_PINS[4])
+};
+
+int prev = -1;
+
+void setup() {
+  // Serial begin and wait for it to complete loading
+  Serial.begin(9600);
+  while (!Serial)
+    ;
+
+  // Calibrate sensors
+  for (int i = 0; i < NUM_FLEX_SENSORS; i++) {
+    flexSensors[i].calibrate();
   }
 
   Serial.println("");
-
 }
 
-void printfunc(double r0, double r1, double r2, double r3, double r4){
+void printChar(int charCode) {
+  switch (charCode) {
+  case CHAR_S:
+    Serial.println("S");
+    break;
 
-  int letter = prev;
-  
-  if(r0 <= 25 && r1 <= 25 && r2 <= 35 && r3 <= 25 && r4 <= 25){
-    letter = S;
-  }
-  else if(r0 <= 45 && r1 > 25 && r1 <= 60 && r2 > 25 && r2 <= 60 && r3 > 25 && r3 <= 60 && r4 > 25 && r4 <= 60){
-    letter = O;
-  }
-  else if(r0 > 20 && r1 > 20 && r1 <= 40 && r2 > 50 && r3 > 75 && r4 > 75){
-    letter = F;   
-  }
-  else if(r0 > 25 && r1 > 15 && r1 <= 45 && r2 <= 25 && r3 <= 30 && r4 > 15 && r4 <= 40){
-    letter = T;
-  }
-  else if(r0 > 45 && r1 > 80 && r2 > 80 && r3 > 80 && r4 > 30 && r4 <= 60){
-    letter = W;
-  }
-  else if(r0 > 50 && r0 <= 60 && r1 <= 30 && r2 <= 30 && r3 <= 30 && r4 <= 45){
-    letter = A;
-  }
-  else if(r0 > 45 && r1 > 80 && r2 > 55 && r3 <= 35 && r4 > 20 && r4 <= 45){
-    letter = R;
-  }
-  else if(r0 <= 20 && r1 > 25 && r1 <= 45 && r2 <= 35 && r3 <= 45 && r4 <= 40){
-    letter = E;
-  }
-  else if(r0 >= 40 && r1 >= 80 && r2 >= 80 && r3 >= 80 && r4 >= 80){
-    letter = SPACE;
-  }
-  else if(r0 <= 20 && r1 > 25 && r1 <= 45 && r2 <= 35 && r3 <= 45 && r4 <= 40){
-    letter = N;
-  }
-  else if(r0 <= 20 && r1 > 25 && r1 <= 45 && r2 <= 35 && r3 <= 45 && r4 <= 40){
-    letter = G;
-  }
+  case CHAR_O:
+    Serial.println("O");
+    break;
 
-  if(letter != prev){
-    prev = letter;
-    switch(letter){
-    
-    case S: 
-      Serial.println("S");
-      break;
-    
-    case O:
-      Serial.println("O");
-      break;
-    
-    case F:
-      Serial.println("F");
-      break;
-    
-    case T:
-      Serial.println("T");
-      break;
-    
-    case W:
-      Serial.println("W");
-      break;
-    
-    case A:
-      Serial.println("A");
-      break;
-    
-    case R:
-      Serial.println("R");
-      break;
-    
-    case E:
-      Serial.println("E");
-      break;
-    
-    case SPACE:
-      Serial.println("E");
-      break;
-    
-    case N:
-      Serial.println("E");
-      break;
-    
-    case G:
-      Serial.println("E");
-      break;
+  case CHAR_F:
+    Serial.println("F");
+    break;
 
-    default:
-      Serial.println("^");
-    }
+  case CHAR_T:
+    Serial.println("T");
+    break;
+
+  case CHAR_W:
+    Serial.println("W");
+    break;
+
+  case CHAR_A:
+    Serial.println("A");
+    break;
+
+  case CHAR_R:
+    Serial.println("R");
+    break;
+
+  case CHAR_E:
+    Serial.println("E");
+    break;
+
+  case CHAR_SPACE:
+    Serial.println(" ");
+    break;
+
+  case CHAR_N:
+    Serial.println("N");
+    break;
+
+  case CHAR_G:
+    Serial.println("G");
+    break;
+
+  default:
+    Serial.println("^");
   }
-  
 }
 
 void loop() {
+  double mappedValues[NUM_FLEX_SENSORS];
 
-  // the sensor read
-  double fr0 = analogRead(FPIN0);
-  double fr1 = analogRead(FPIN1);
-  double fr2 = analogRead(FPIN2);
-  double fr3 = analogRead(FPIN3);
-  double fr4 = analogRead(FPIN4);
+  // Read and map values for all flex sensors
+  for (int i = 0; i < NUM_FLEX_SENSORS; i++) {
+    mappedValues[i] = flexSensors[i].getMappedValue();
+  }
 
-  // the mapped sensor read
-  double mfr0 = map(fr0, fmax0, fmin1, 0, 90);
-  double mfr1 = map(fr1, fmax1, fmin1, 0, 90);
-  double mfr2 = map(fr2, fmax2, fmin2, 0, 90);
-  double mfr3 = map(fr3, fmax3, fmin3, 0, 90);
-  double mfr4 = map(fr4, fmax4, fmin4, 0, 90);
+  // Print characters based on mapped values
+  int letter = prev;
+  if (mappedValues[0] <= 25 && mappedValues[1] <= 25 && mappedValues[2] <= 35 &&
+      mappedValues[3] <= 25 && mappedValues[4] <= 25) {
+    letter = CHAR_S;
+  } else if (mappedValues[0] <= 45 && mappedValues[1] > 25 &&
+             mappedValues[1] <= 60 && mappedValues[2] > 25 &&
+             mappedValues[2] <= 60 && mappedValues[3] > 25 &&
+             mappedValues[3] <= 60 && mappedValues[4] > 25 &&
+             mappedValues[4] <= 60) {
+    letter = CHAR_O;
+  } else if (mappedValues[0] > 20 && mappedValues[1] > 20 &&
+             mappedValues[1] <= 40 && mappedValues[2] > 50 &&
+             mappedValues[3] > 75 && mappedValues[4] > 75) {
+    letter = CHAR_F;
+  } else if (mappedValues[0] > 25 && mappedValues[1] > 15 &&
+             mappedValues[1] <= 45 && mappedValues[2] <= 25 &&
+             mappedValues[3] <= 30 && mappedValues[4] > 15 &&
+             mappedValues[4] <= 40) {
+    letter = CHAR_T;
+  } else if (mappedValues[0] > 45 && mappedValues[1] > 80 &&
+             mappedValues[2] > 80 && mappedValues[3] > 80 &&
+             mappedValues[4] > 30 && mappedValues[4] <= 60) {
+    letter = CHAR_W;
+  } else if (mappedValues[0] > 50 && mappedValues[0] <= 60 &&
+             mappedValues[1] <= 30 && mappedValues[2] <= 30 &&
+             mappedValues[3] <= 30 && mappedValues[4] <= 45) {
+    letter = CHAR_A;
+  } else if (mappedValues[0] > 45 && mappedValues[1] > 80 &&
+             mappedValues[2] > 55 && mappedValues[3] <= 35 &&
+             mappedValues[4] > 20 && mappedValues[4] <= 45) {
+    letter = CHAR_R;
+  } else if (mappedValues[0] <= 20 && mappedValues[1] > 25 &&
+             mappedValues[1] <= 45 && mappedValues[2] <= 35 &&
+             mappedValues[3] <= 45 && mappedValues[4] <= 40) {
+    letter = CHAR_E;
+  } else if (mappedValues[0] >= 40 && mappedValues[1] >= 80 &&
+             mappedValues[2] >= 80 && mappedValues[3] >= 80 &&
+             mappedValues[4] >= 80) {
+    letter = CHAR_SPACE;
+  } else if (mappedValues[0] <= 20 && mappedValues[1] > 25 &&
+             mappedValues[1] <= 45 && mappedValues[2] <= 35 &&
+             mappedValues[3] <= 45 && mappedValues[4] <= 40) {
+    letter = CHAR_N;
+  } else if (mappedValues[0] <= 20 && mappedValues[1] > 25 &&
+             mappedValues[1] <= 45 && mappedValues[2] <= 35 &&
+             mappedValues[3] <= 45 && mappedValues[4] <= 40) {
+    letter = CHAR_G;
+  }
 
-  //Serial.println("For testing purpose only: ");
-
-  //Serial.println(mfr0);
-  //Serial.println(mfr1);
-  //Serial.println(mfr2);
-  //Serial.println(mfr3);
-  //Serial.println(mfr4);
-  //Serial.println("");
-
- 
-  delay(10000);
-
-  // to delay 1000 to stablize
-
-
+  if (letter != prev) {
+    prev = letter;
+    printChar(letter);
+  }
 }
